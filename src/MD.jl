@@ -38,6 +38,108 @@ function add_new_random_force!(_, _, S::Newtonian)
 end
 
 
+function compute_forces_berthier_3d(neighborlist, parameters, arrays, particle_i)
+    r_array = arrays.r_array
+    F_array = arrays.F_array
+    D_array = arrays.D_array
+    r²_cutoff = parameters.force_cutoff2
+    box_size = parameters.box_size
+    neighbor_list = neighborlist.neighbor_list_half
+    interaction_potential = parameters.interaction_potential
+    ri = r_array[particle_i]
+    fx = 0.0
+    fy = 0.0
+    fz = 0.0
+    xi = ri[1]
+    yi = ri[2]
+    zi = ri[3]
+    ζ = interaction_potential.ζ
+    c2 = interaction_potential.c2
+    c4 = interaction_potential.c4
+    r_array_r = reinterpret(reshape, Float64, r_array)
+    F_array_r = reinterpret(reshape, Float64, F_array)
+    Di = D_array[particle_i]
+    N_neighbors = neighborlist.neighbor_numbers_half[particle_i]
+    @turbo for neighbor_index = 1:N_neighbors
+        particle_j = neighbor_list[neighbor_index, particle_i]
+        xj = r_array_r[1,particle_j]
+        yj = r_array_r[2,particle_j]
+        zj = r_array_r[3,particle_j]
+        dx = xi - xj
+        dy = yi - yj
+        dz = zi - zj
+        dx -= round(dx / box_size) * box_size
+        dy -= round(dy / box_size) * box_size
+        dz -= round(dz / box_size) * box_size
+        rij2 = dx^2 + dy^2 + dz^2
+        Dj = D_array[particle_j]
+        mean_d = (Di + Dj)*0.5 * (1.0 - ζ * abs(Di - Dj))  #find_mean_D(Di, Dj, interaction_potential)
+        mean_d_squared = mean_d * mean_d
+        inv_mean_d2 = 1.0 / mean_d_squared
+        invxi2 = rij2*inv_mean_d2#
+        invxi4 = invxi2*invxi2#
+        xi14 = 1.0/(invxi4*invxi4*invxi4*invxi2)#
+        F = ifelse(r²_cutoff * mean_d_squared < rij2, 0.0, -2.0 * inv_mean_d2 * (c2 + 2.0*c4*invxi2 - 6.0*xi14))
+        fx += F * dx
+        fy += F * dy
+        fz += F * dz
+        F_array_r[1, particle_j] -= F * dx
+        F_array_r[2, particle_j] -= F * dy
+        F_array_r[3, particle_j] -= F * dz
+    end
+    F_array_r[1, particle_i] += fx
+    F_array_r[2, particle_i] += fy
+    F_array_r[3, particle_i] += fz
+end
+
+
+function compute_forces_berthier_2d(neighborlist, parameters, arrays, particle_i)
+    r_array = arrays.r_array
+    F_array = arrays.F_array
+    D_array = arrays.D_array
+    r²_cutoff = parameters.force_cutoff2
+    box_size = parameters.box_size
+    neighbor_list = neighborlist.neighbor_list_half
+    interaction_potential = parameters.interaction_potential
+    ri = r_array[particle_i]
+    fx = 0.0
+    fy = 0.0
+    xi = ri[1]
+    yi = ri[2]
+    ζ = interaction_potential.ζ
+    c2 = interaction_potential.c2
+    c4 = interaction_potential.c4
+    r_array_r = reinterpret(reshape, Float64, r_array)
+    F_array_r = reinterpret(reshape, Float64, F_array)
+    Di = D_array[particle_i]
+    N_neighbors = neighborlist.neighbor_numbers_half[particle_i]
+    @turbo for neighbor_index = 1:N_neighbors
+        particle_j = neighbor_list[neighbor_index, particle_i]
+        xj = r_array_r[1,particle_j]
+        yj = r_array_r[2,particle_j]
+        dx = xi - xj
+        dy = yi - yj
+        dx -= round(dx / box_size) * box_size
+        dy -= round(dy / box_size) * box_size
+        rij2 = dx^2 + dy^2 
+        Dj = D_array[particle_j]
+        mean_d = (Di + Dj)*0.5 * (1.0 - ζ * abs(Di - Dj))  #find_mean_D(Di, Dj, interaction_potential)
+        mean_d_squared = mean_d * mean_d
+        inv_mean_d2 = 1.0 / mean_d_squared
+        invxi2 = rij2*inv_mean_d2#
+        invxi4 = invxi2*invxi2#
+        xi14 = 1.0/(invxi4*invxi4*invxi4*invxi2)#
+        F = ifelse(r²_cutoff * mean_d_squared < rij2, 0.0, -2.0 * inv_mean_d2 * (c2 + 2.0*c4*invxi2 - 6.0*xi14))
+        fx += F * dx
+        fy += F * dy
+        F_array_r[1, particle_j] -= F * dx
+        F_array_r[2, particle_j] -= F * dy
+    end
+    F_array_r[1, particle_i] += fx
+    F_array_r[2, particle_i] += fy
+end
+
+
 """
 Calculates the total force on all particles according to the langevin equation F = -∇U - γv + R. This function also updates the
 total potential energy in the output datastructure.
@@ -64,51 +166,10 @@ function calculate_new_forces!(arrays, parameters, neighborlist)
         if N_neighbors == 0
             continue
         end
-
         if dims == 3 && typeof(interaction_potential) == Berthier
-            fx = 0.0
-            fy = 0.0
-            fz = 0.0
-            xi = ri[1]
-            yi = ri[2]
-            zi = ri[3]
-            ζ = interaction_potential.ζ
-            c2 = interaction_potential.c2
-            c4 = interaction_potential.c4
-            r_array_r = reinterpret(reshape, Float64, r_array)
-            F_array_r = reinterpret(reshape, Float64, F_array)
-
-            @turbo for neighbor_index = 1:N_neighbors
-                particle_j = neighbor_list[neighbor_index, particle_i]
-                xj = r_array_r[1,particle_j]
-                yj = r_array_r[2,particle_j]
-                zj = r_array_r[3,particle_j]
-                dx = xi - xj
-                dy = yi - yj
-                dz = zi - zj
-                dx -= round(dx / box_size) * box_size
-                dy -= round(dy / box_size) * box_size
-                dz -= round(dz / box_size) * box_size
-                rij2 = dx^2 + dy^2 + dz^2
-                Dj = D_array[particle_j]
-                mean_d = (Di + Dj)*0.5 * (1.0 - ζ * abs(Di - Dj))  #find_mean_D(Di, Dj, interaction_potential)
-                mean_d_squared = mean_d * mean_d
-                inv_mean_d2 = 1.0 / mean_d_squared
-                invxi2 = rij2*inv_mean_d2#
-                invxi4 = invxi2*invxi2#
-                xi14 = 1.0/(invxi4*invxi4*invxi4*invxi2)#
-                F = ifelse(r²_cutoff * mean_d_squared < rij2, 0.0, -2.0 * inv_mean_d2 * (c2 + 2.0*c4*invxi2 - 6.0*xi14))
-                # F = ifelse(r²_cutoff * mean_d_squared < rij2, 0.0, force(rij2, mean_d_squared, interaction_potential))
-                fx += F * dx
-                fy += F * dy
-                fz += F * dz
-                F_array_r[1, particle_j] -= F * dx
-                F_array_r[2, particle_j] -= F * dy
-                F_array_r[3, particle_j] -= F * dz
-            end
-            F_array_r[1, particle_i] += fx
-            F_array_r[2, particle_i] += fy
-            F_array_r[3, particle_i] += fz
+            compute_forces_berthier_3d(neighborlist, parameters, arrays, particle_i)
+        elseif dims == 2 && typeof(interaction_potential) == Berthier
+            compute_forces_berthier_2d(neighborlist, parameters, arrays, particle_i)
         else
             f = zero(eltype(r_array))
 
