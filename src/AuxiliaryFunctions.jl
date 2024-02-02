@@ -222,7 +222,6 @@ function IPL_inner_loop(interaction_potential, r_array, ri, N_neighbors, particl
         xj = r_array_r[1, particle_j]
         yj = r_array_r[2, particle_j]
         zj = r_array_r[3, particle_j]
-        Dj = D_array[particle_j]
         dx = xi - xj
         dy = yi - yj
         dz = zi - zj

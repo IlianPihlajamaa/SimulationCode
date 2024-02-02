@@ -189,14 +189,14 @@ function do_time_step_Euler(arrays, parameters, output, neighborlist, system::Un
 end
 
 function rescale_velocities!(v_array, parameters)
-    @assert parameters.system.dims == 3
+    dims = parameters.system.dims
 
     Ekin = 0.0
     for i = 1:parameters.N
         Ekin += sum(v_array[i] .^ 2)
     end
     Ekin *= parameters.system.m / 2.0
-    kBT_current = 2Ekin / (3 * parameters.N)
+    kBT_current = 2Ekin / (dims * parameters.N)
     factor = sqrt(parameters.system.kBT / kBT_current)
     v_array .*= factor
 end
@@ -248,8 +248,6 @@ end
 
 
 function do_time_step(arrays, parameters, output, neighborlist, system::Union{Newtonian,Langevin})
-   
-    @assert parameters.system.dims == 3
     """
     Performs a velocity verlet step.
     """
@@ -337,19 +335,29 @@ function print_log_data(arrays, parameters, output, neighborlist)
     end
     calculate_F2_self!(arrays, parameters, output)
     energy_no_neigh = calculate_full_energy_no_neigh(arrays, parameters)
-    @assert parameters.system.dims == 3
-
-    println(
-        "$(output.steps_done)/$(parameters.N_steps), ",
-        "E = $(round(output.potential_energy + output.kinetic_energy,digits=2)),  ",
-        "E_pot = $(round(output.potential_energy,digits=12)),  ",
-        "E_pot_test = $(round(energy_no_neigh, digits=12)),  ",
-        "E_kin = $(round(output.kinetic_energy, digits=2)), ",
-        "kT = $(round(output.kinetic_energy *2/3/parameters.N, digits=3)), ",
-        "q4 = $(round(output.q4,digits=3)), ",
-        "q6 = $(round(output.q6, digits=3)), ",
-        "F₂s = $(round(output.F2s, digits=3))"
-    )
+    if parameters.system.dims == 3
+        println(
+            "$(output.steps_done)/$(parameters.N_steps), ",
+            "E = $(round(output.potential_energy + output.kinetic_energy,digits=2)),  ",
+            "E_pot = $(round(output.potential_energy,digits=12)),  ",
+            "E_pot_test = $(round(energy_no_neigh, digits=12)),  ",
+            "E_kin = $(round(output.kinetic_energy, digits=2)), ",
+            "kT = $(round(output.kinetic_energy *2/3/parameters.N, digits=3)), ",
+            "q4 = $(round(output.q4,digits=3)), ",
+            "q6 = $(round(output.q6, digits=3)), ",
+            "F₂s = $(round(output.F2s, digits=3))"
+        )
+    else 
+        println(
+            "$(output.steps_done)/$(parameters.N_steps), ",
+            "E = $(round(output.potential_energy + output.kinetic_energy,digits=2)),  ",
+            "E_pot = $(round(output.potential_energy,digits=12)),  ",
+            "E_pot_test = $(round(energy_no_neigh, digits=12)),  ",
+            "E_kin = $(round(output.kinetic_energy, digits=2)), ",
+            "kT = $(round(output.kinetic_energy *2/3/parameters.N, digits=3)), ",
+            "F₂s = $(round(output.F2s, digits=3))"
+        )
+    end
 
 end
 
