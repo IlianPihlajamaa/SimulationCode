@@ -173,7 +173,7 @@ function GC_inner_loop(interaction_potential, r_array, ri, N_neighbors, particle
 
 end
 
-function berthier_inner_loop(interaction_potential, r_array, ri, N_neighbors, particle_i, D_array, box_size, r²_cutoff, neighbor_list)
+function berthier_inner_loop3(interaction_potential, r_array, ri, N_neighbors, particle_i, D_array, box_size, r²_cutoff, neighbor_list)
     ζ = interaction_potential.ζ
     c0 = interaction_potential.c0
     c2 = interaction_potential.c2
@@ -197,6 +197,37 @@ function berthier_inner_loop(interaction_potential, r_array, ri, N_neighbors, pa
         dy -= round(dy / box_size) * box_size
         dz -= round(dz / box_size) * box_size
         rij2 = dx^2 + dy^2 + dz^2
+        mean_d = (Di + Dj)*0.5 * (1.0 - ζ * abs(Di - Dj)) 
+        mean_d_squared = mean_d * mean_d
+        invxi2 = rij2/mean_d_squared#
+        invxi4 = invxi2*invxi2#
+        xi12 = 1.0/(invxi4*invxi4*invxi4)#
+        energy += ifelse(r²_cutoff * mean_d_squared < rij2, 0.0, xi12 + c4 * invxi4 + c2*invxi2 + c0)
+    end
+    return energy
+end
+
+
+function berthier_inner_loop2(interaction_potential, r_array, ri, N_neighbors, particle_i, D_array, box_size, r²_cutoff, neighbor_list)
+    ζ = interaction_potential.ζ
+    c0 = interaction_potential.c0
+    c2 = interaction_potential.c2
+    c4 = interaction_potential.c4
+    xi = ri[1]
+    yi = ri[2]
+    Di = D_array[particle_i]
+    r_array_r = reinterpret(reshape, Float64, r_array)
+    energy = 0.0
+    @turbo for neighbor_index = 1:N_neighbors
+        particle_j = neighbor_list[neighbor_index, particle_i]
+        xj = r_array_r[1, particle_j]
+        yj = r_array_r[2, particle_j]
+        Dj = D_array[particle_j]
+        dx = xi - xj
+        dy = yi - yj
+        dx -= round(dx / box_size) * box_size
+        dy -= round(dy / box_size) * box_size
+        rij2 = dx^2 + dy^2 
         mean_d = (Di + Dj)*0.5 * (1.0 - ζ * abs(Di - Dj)) 
         mean_d_squared = mean_d * mean_d
         invxi2 = rij2/mean_d_squared#
@@ -285,7 +316,9 @@ function find_energy(particle_i, ri, Di, arrays, parameters, neighborlist)
     D_array = arrays.D_array
     neighbor_list = neighborlist.neighbor_list_full
     if parameters.system.dims == 3 && typeof(interaction_potential)==Berthier
-        return berthier_inner_loop(interaction_potential, r_array, ri, N_neighbors, particle_i, D_array, box_size, r²_cutoff, neighbor_list)
+        return berthier_inner_loop3(interaction_potential, r_array, ri, N_neighbors, particle_i, D_array, box_size, r²_cutoff, neighbor_list)
+    elseif parameters.system.dims == 2 && typeof(interaction_potential)==Berthier
+        return berthier_inner_loop2(interaction_potential, r_array, ri, N_neighbors, particle_i, D_array, box_size, r²_cutoff, neighbor_list)
     elseif parameters.system.dims == 3 && typeof(interaction_potential)==GaussianCore
         return GC_inner_loop(interaction_potential, r_array, ri, N_neighbors, particle_i, D_array, box_size, r²_cutoff, neighbor_list)
     elseif parameters.system.dims == 3 && typeof(interaction_potential)==LJ
