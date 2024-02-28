@@ -60,7 +60,7 @@ function compute_forces_berthier_3d(neighborlist, parameters, arrays, particle_i
     F_array_r = reinterpret(reshape, Float64, F_array)
     Di = D_array[particle_i]
     N_neighbors = neighborlist.neighbor_numbers_half[particle_i]
-    for neighbor_index = 1:N_neighbors
+    @turbo for neighbor_index = 1:N_neighbors
         particle_j = neighbor_list[neighbor_index, particle_i]
         xj = r_array_r[1,particle_j]
         yj = r_array_r[2,particle_j]
