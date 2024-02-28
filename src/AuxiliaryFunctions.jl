@@ -218,7 +218,7 @@ function berthier_inner_loop2(interaction_potential, r_array, ri, N_neighbors, p
     Di = D_array[particle_i]
     r_array_r = reinterpret(reshape, Float64, r_array)
     energy = 0.0
-    @turbo for neighbor_index = 1:N_neighbors
+    for neighbor_index = 1:N_neighbors
         particle_j = neighbor_list[neighbor_index, particle_i]
         xj = r_array_r[1, particle_j]
         yj = r_array_r[2, particle_j]
