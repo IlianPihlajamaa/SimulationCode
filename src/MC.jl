@@ -137,6 +137,7 @@ function perform_swap_monte_carlo!(arrays, parameters, output, neighborlist)
                         "q6 = $(round(output.q6, digits=3)), ",
                         "F₂s = $(round(output.F2s, digits=3))"
                     )
+            flush(stdout)
 
             if output.q6 > 0.2
                 error("Simulation has crystallized, terminating...") 
