@@ -24,9 +24,19 @@ end
     return 4U.ϵ*(xi12 - xi6) - U.Uc
 end
 
+"""
+Calculates the Lennard-Jones force between two particles.
+
+# Arguments
+- `r_squared`: The squared distance between the two particles.
+- `mean_d_squared`: The squared mean diameter of the two particles.
+- `U::LJ`: The Lennard-Jones potential parameters.
+
+# Returns
+- The force divided by the distance between the two particles (F/r).
+
+"""
 @inline function force(r_squared, mean_d_squared, U::LJ)
-    """
-    """
     inv_r_squared = 1.0/r_squared
     xi2 = mean_d_squared*inv_r_squared
     xi6 = xi2*xi2*xi2

@@ -18,7 +18,7 @@ m = 1.0                             # mass
 
 # system = Brownian(kBT, γ, Δt, dims)
 system = SimulationCode.Newtonian(kBT, Δt, m, false, dims)
-# system = Langevin(kBT, 20, Δt, 1.0, dims)
+# system = Langevin(γ, kBT, Δt, m, dims)
 
 N = 1200                        # Number of particles
 force_cutoff = 1.25             # Force cutoff

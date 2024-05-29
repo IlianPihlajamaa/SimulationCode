@@ -1,9 +1,27 @@
+"""
+    update_neighbor_lists!(arrays, parameters, output, neighborlist)
 
+Update neighbor lists using cell decomposition.
+
+This function updates neighbor lists using a cell decomposition technique, which is faster than a full pairwise loop for large systems.
+It constructs Verlet lists by decomposing the simulation box into cells and updating neighbor lists based on particle positions.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions.
+- `parameters::Parameters`: An object containing various simulation parameters, such as force cutoff distance.
+- `output::Output`: An object tracking the simulation progress and results.
+- `neighborlist::NeighborList`: A list of neighboring particles for efficient force calculation.
+
+# Details
+- Increments the neighbor list rebuild counter in the output object.
+- Updates the cell list using particle positions and auxiliary structures.
+- Resets displacement arrays and neighbor numbers for full and half neighbor lists.
+- Constructs neighbor lists using pairwise interactions within the force cutoff distance.
+
+# Returns
+- `Nothing`: The function modifies the neighbor list arrays in place.
+"""
 function update_neighbor_lists!(arrays, parameters, output, neighborlist)
-    """
-    Constructs verlet lists by a cell decomposition of the simulation box. Much faster than the full loop if N>>10^2.
-    """
-    
     output.N_neighbor_list_rebuilds += 1
 
     r_array = arrays.r_array
@@ -34,6 +52,33 @@ function update_neighbor_lists!(arrays, parameters, output, neighborlist)
     )
 end
 
+
+"""
+    add_pair!(i, j, d2, neighborlist, arrays, r_cutoff, interaction_potential)
+
+Add a pair of particles to the neighbor lists.
+
+This function adds a pair of particles to the full and half neighbor lists based on the distance between them and the force cutoff distance.
+It calculates the mean diameter between the particles based on their individual diameters and the interaction potential.
+
+# Arguments
+- `i::Int`: Index of the first particle.
+- `j::Int`: Index of the second particle.
+- `d2::Float64`: Squared distance between the particles.
+- `neighborlist::NeighborList`: A list of neighboring particles for efficient force calculation.
+- `arrays::Arrays`: An object containing arrays storing information about particle diameters.
+- `r_cutoff::Float64`: Force cutoff distance.
+- `interaction_potential`: The interaction potential between particles.
+
+# Details
+- Increments the neighbor numbers for both full and half neighbor lists for both particles.
+- Adds the index of the second particle to the neighbor list of the first particle if it falls within the cutoff distance.
+- Calculates the mean diameter between the particles and updates the half neighbor list accordingly.
+- Updates the neighbor list of the second particle in a similar manner.
+
+# Returns
+- `Nothing`: The function modifies the neighbor list arrays in place.
+"""
 function add_pair!(i,j,d2, neighborlist, arrays, r_cutoff, interaction_potential)
     neighbor_number = neighborlist.neighbor_numbers_full[i]
     neighbor_number += 1

@@ -1,9 +1,24 @@
-function do_translation_step!(arrays, parameters, output, neighborlist, particle_i)
+"""
+Performs a translation step for a given particle in a Monte Carlo simulation.
 
-    """
-    performs a translation step of particle_i. calculates the current energy of that particle and the energy after a random displacement. 
-    Accepts the step with the metropolis rule.
-    """
+# Arguments
+- `arrays`: Struct containing arrays of particle positions, displacements, etc.
+- `parameters`: Struct containing simulation parameters.
+- `output`: Struct for tracking simulation output metrics.
+- `neighborlist`: Struct for neighbor list data.
+- `particle_i`: Index of the particle to be moved.
+
+# Details
+This function attempts to move a particle by a random displacement, calculates the change in potential energy, and decides whether to accept the move based on the Boltzmann factor. If the move is accepted, the particle's position is updated and relevant metrics are adjusted.
+
+The function also updates the displacement arrays and counts the number of accepted and total translation attempts.
+
+# Example
+```julia
+do_translation_step!(arrays, parameters, output, neighborlist, particle_i)
+```
+"""
+function do_translation_step!(arrays, parameters, output, neighborlist, particle_i)
     box_size = parameters.box_size
     r_array = arrays.r_array
     D_array = arrays.D_array
@@ -31,12 +46,35 @@ function do_translation_step!(arrays, parameters, output, neighborlist, particle
     end
 end
 
+"""
+    do_swap_step!(arrays, parameters, output, neighborlist, particle_i, particle_j)
+
+Perform a Monte Carlo swap step between two particles in a simulation.
+
+This function attempts to swap the diameters of two particles within a given simulation box,
+calculating the change in potential energy and accepting or rejecting the swap based on the
+Metropolis criterion.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions and diameters.
+- `parameters::Parameters`: An object containing various simulation parameters, such as system temperature and box size.
+- `output::Output`: An object tracking the total number of swaps attempted and accepted, and updating the potential energy.
+- `neighborlist::NeighborList`: A list of neighboring particles for efficient energy calculation.
+- `particle_i::Int`: The index of the first particle involved in the swap.
+- `particle_j::Int`: The index of the second particle involved in the swap.
+
+# Details
+- If `particle_i` is the same as `particle_j`, the function returns immediately without making any changes.
+- The function only proceeds with the swap if the absolute difference between the diameters of the two particles is less than or equal to 0.2.
+- Computes the energy of the system before and after the swap using the `find_energy` function.
+- The swap is accepted based on the Boltzmann factor calculated from the energy change, otherwise it is rejected.
+- Updates the `output` object with the number of swaps attempted, number of swaps accepted, and the change in potential energy if the swap is accepted.
+
+# Returns
+- `Nothing`: The function modifies the input arrays and output object in place.
+"""
 function do_swap_step!(arrays, parameters, output, neighborlist, particle_i, particle_j)
 
-    """
-    performs a swap step of particle_i and particle_j. calculates the combined current energy of the particles and their energy after a random displacement. 
-    Accepts the step with the metropolis rule.
-    """
     if particle_j == particle_i
         return
     end
@@ -72,11 +110,33 @@ function do_swap_step!(arrays, parameters, output, neighborlist, particle_i, par
     return
 end
 
+"""
+    do_MC_step!(arrays, parameters, output, neighborlist, swap_probability)
 
+Perform a Monte Carlo step in the simulation.
+
+This function performs a Monte Carlo step in the simulation, which can include translation or swap steps
+for each particle in the system. The type of step is determined probabilistically based on the given
+`swap_probability`.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions and diameters.
+- `parameters::Parameters`: An object containing various simulation parameters, such as system temperature and box size.
+- `output::Output`: An object tracking the total number of swaps attempted and accepted, and updating the potential energy.
+- `neighborlist::NeighborList`: A list of neighboring particles for efficient energy calculation.
+- `swap_probability::Float64`: The probability of performing a swap step instead of a translation step.
+
+# Details
+- Generates a random displacement array for each particle using `populate_random_displacement_array!` function.
+- For each particle, decides whether to perform a translation or a swap step based on `swap_probability`.
+- If a translation step is chosen, calls the `do_translation_step!` function for that particle.
+- If the displacement of the particle exceeds half the skin distance, updates the neighbor list.
+- If a swap step is chosen, randomly selects another particle to swap with and calls the `do_swap_step!` function.
+
+# Returns
+- `Nothing`: The function modifies the input arrays and output object in place.
+"""
 function do_MC_step!(arrays, parameters, output, neighborlist, swap_probability)
-    """
-    Performs a single MC step for all particles. Decides randomly which type of step should be performed.
-    """
     displacement_squared_array = neighborlist.displacement_squared_array
     N = parameters.N
 
@@ -95,11 +155,33 @@ function do_MC_step!(arrays, parameters, output, neighborlist, swap_probability)
     end
 end
 
+"""
+    perform_swap_monte_carlo!(arrays, parameters, output, neighborlist)
 
+Perform a Monte Carlo simulation with swap moves.
+
+This function executes a Monte Carlo simulation, incorporating swap moves between particles.
+It iterates over a specified number of steps and performs various actions such as updating neighbor lists,
+calculating energies, and saving data. Additionally, it checks for crystallization during the simulation.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions and diameters.
+- `parameters::Parameters`: An object containing various simulation parameters, such as system temperature and box size.
+- `output::Output`: An object tracking the simulation progress and results.
+- `neighborlist::NeighborList`: A list of neighboring particles for efficient energy calculation.
+
+# Details
+- Initializes the simulation and sets up necessary variables and counters.
+- Executes the Monte Carlo steps using the `do_MC_step!` function.
+- Calls user-defined callback functions and saves data periodically.
+- Checks for crystallization during the simulation and terminates if detected.
+- Prints information about the simulation progress and results.
+
+# Returns
+- `Nothing`: The function prints simulation information to the console.
+"""
 function perform_swap_monte_carlo!(arrays, parameters, output, neighborlist)
-    """
-    Main MC loop.
-    """
+
     println("\n\nStarting MC procedure")
     dump_info = parameters.dump_info
     update_neighbor_lists!(arrays, parameters, output, neighborlist)

@@ -5,6 +5,28 @@ function populate_random_displacement_arrayMD!(arr)
     randn!(arr)
 end
 
+
+"""
+    add_new_random_force!(arrays, parameters, system::Langevin)
+
+Add random forces for Langevin dynamics.
+
+This function adds random forces to particles for Langevin dynamics simulations.
+It generates random displacements and scales them to create random forces based on the specified Langevin dynamics parameters.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions, velocities, and forces.
+- `parameters::Parameters`: An object containing various simulation parameters, such as time step and system properties.
+- `system::Langevin`: Specifies the Langevin dynamics system properties.
+
+# Details
+- Generates random displacements using a pre-allocated random displacement array.
+- Scales random displacements to create random forces based on the specified Langevin dynamics parameters.
+- Adds random forces to each particle in the force array, considering the velocity-dependent drag term.
+
+# Returns
+- `Nothing`: The function modifies the force array in place.
+"""
 function add_new_random_force!(arrays, parameters, system::Langevin)
     γ = system.γ
     Δt = system.Δt
@@ -20,6 +42,28 @@ function add_new_random_force!(arrays, parameters, system::Langevin)
     end
 end
 
+
+"""
+    add_new_random_force!(arrays, parameters, system::Brownian)
+
+Add random forces for Brownian dynamics.
+
+This function adds random forces to particles for Brownian dynamics simulations.
+It generates random displacements and scales them to create random forces based on the specified Brownian dynamics parameters.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions and forces.
+- `parameters::Parameters`: An object containing various simulation parameters, such as time step and system properties.
+- `system::Brownian`: Specifies the Brownian dynamics system properties.
+
+# Details
+- Generates random displacements using a pre-allocated random displacement array.
+- Scales random displacements to create random forces based on the specified Brownian dynamics parameters.
+- Adds random forces to each particle in the force array.
+
+# Returns
+- `Nothing`: The function modifies the force array in place.
+"""
 function add_new_random_force!(arrays, parameters, system::Brownian)
     γ = system.γ
     Δt = system.Δt
@@ -195,9 +239,28 @@ end
 
 
 """
-Calculates the total force on all particles according to the langevin equation F = -∇U - γv + R. This function also updates the
-total potential energy in the output datastructure.
+    calculate_new_forces!(arrays, parameters, neighborlist)
+
+Calculate forces between particles.
+
+This function computes forces between particles based on their positions and interaction potentials.
+It considers different interaction potentials and dimensions of the system to compute forces efficiently.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions and diameters.
+- `parameters::Parameters`: An object containing various simulation parameters, such as interaction potential and box size.
+- `neighborlist::NeighborList`: A list of neighboring particles for efficient force calculation.
+
+# Details
+- Resets the force arrays for each particle.
+- Iterates over each particle and calculates forces between it and its neighboring particles.
+- Considers different interaction potentials and dimensions to compute forces efficiently.
+- Adds random forces for Brownian and Langevin dynamics.
+
+# Returns
+- `Nothing`: The function modifies the force arrays in place.
 """
+
 function calculate_new_forces!(arrays, parameters, neighborlist)
     dims = parameters.system.dims
 
@@ -305,6 +368,27 @@ function do_time_step_Euler(arrays, parameters, output, neighborlist, system::Un
     end
 end
 
+
+"""
+    rescale_velocities!(v_array, parameters)
+
+Rescale velocities to maintain a target temperature.
+
+This function rescales particle velocities to maintain a target temperature specified in the parameters.
+It calculates the current kinetic energy of the system and adjusts velocities to match the desired temperature.
+
+# Arguments
+- `v_array::Array{Float64, 1}`: An array containing particle velocities.
+- `parameters::Parameters`: An object containing various simulation parameters, including the target temperature.
+
+# Details
+- Calculates the current kinetic energy of the system using the velocities.
+- Computes the factor by which velocities need to be rescaled to achieve the target temperature.
+- Updates particle velocities by multiplying them with the rescaling factor.
+
+# Returns
+- `Nothing`: The function modifies the input velocity array in place.
+"""
 function rescale_velocities!(v_array, parameters)
     dims = parameters.system.dims
 
@@ -318,7 +402,31 @@ function rescale_velocities!(v_array, parameters)
     v_array .*= factor
 end
 
+"""
+    do_time_step(arrays, parameters, output, neighborlist, system::Brownian)
 
+Perform a time step for Brownian dynamics.
+
+This function executes a single time step for Brownian dynamics, updating particle positions
+based on the forces acting on them and considering the effects of thermal fluctuations.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions, velocities, and forces.
+- `parameters::Parameters`: An object containing various simulation parameters, such as time step and system properties.
+- `output::Output`: An object tracking the simulation progress and results.
+- `neighborlist::NeighborList`: A list of neighboring particles for efficient force calculation.
+- `system::Brownian`: Specifies the Brownian dynamics system properties.
+
+# Details
+- Calculates the forces acting on each particle using the current positions.
+- Centers the forces around zero to ensure zero net force on the system.
+- Updates particle positions based on the forces and thermal fluctuations.
+- Considers periodic boundary conditions for particle movement.
+- Checks for neighbor list updates if the maximum displacement exceeds half the skin distance.
+
+# Returns
+- `Nothing`: The function modifies the input arrays and output object in place.
+"""
 function do_time_step(arrays, parameters, output, neighborlist, system::Brownian)
     @assert parameters.system.dims == 3
 
@@ -363,11 +471,33 @@ function do_time_step(arrays, parameters, output, neighborlist, system::Brownian
     end
 end
 
+"""
+    do_time_step(arrays, parameters, output, neighborlist, system::Union{Newtonian,Langevin})
 
+Perform a velocity Verlet integration step.
+
+This function executes a single time step using the velocity Verlet integration method.
+It updates particle positions and velocities based on the forces acting on them.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions, velocities, and forces.
+- `parameters::Parameters`: An object containing various simulation parameters, such as time step and system properties.
+- `output::Output`: An object tracking the simulation progress and results.
+- `neighborlist::NeighborList`: A list of neighboring particles for efficient force calculation.
+- `system::Union{Newtonian,Langevin}`: Specifies the dynamics of the system, which can be either Newtonian or Langevin.
+
+# Details
+- Calculates the forces acting on each particle using the current positions and updates the velocities halfway.
+- Updates particle positions based on the current velocities and periodic boundary conditions.
+- Checks for neighbor list updates if the maximum displacement exceeds half the skin distance.
+- Recalculates forces based on the updated positions.
+- Updates velocities for the second half of the time step and ensures zero center-of-mass velocity.
+- Optionally rescales velocities to maintain a target temperature if `system.rescale_temperature` is set to `true`.
+
+# Returns
+- `Nothing`: The function modifies the input arrays and output object in place.
+"""
 function do_time_step(arrays, parameters, output, neighborlist, system::Union{Newtonian,Langevin})
-    """
-    Performs a velocity verlet step.
-    """
     r_array = arrays.r_array
     v_array = arrays.v_array
     F_array = arrays.F_array
@@ -422,14 +552,32 @@ function do_time_step(arrays, parameters, output, neighborlist, system::Union{Ne
         factor = sqrt(system.kBT / kBT_current)
         v_array .*= factor
     end
-
-
 end
 
+
+"""
+    run_short_MD_equilibration!(arrays, parameters, output, neighborlist)
+
+Perform a short molecular dynamics equilibration.
+
+This function conducts a short molecular dynamics (MD) equilibration to relax velocities and forces.
+It iterates over a specified number of steps and performs MD time steps using the Verlet integration method.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions and velocities.
+- `parameters::Parameters`: An object containing various simulation parameters, such as system temperature and time step.
+- `output::Output`: An object tracking the simulation progress and results.
+- `neighborlist::NeighborList`: A list of neighboring particles for efficient energy calculation.
+
+# Details
+- Updates neighbor lists for efficient energy calculation.
+- Executes MD time steps using the Verlet integration method for the specified number of equilibration steps.
+- The equilibration helps relax velocities and forces before starting the production MD simulation.
+
+# Returns
+- `Nothing`: The function modifies the input arrays and output object in place.
+"""
 function run_short_MD_equilibration!(arrays, parameters, output, neighborlist)
-    """
-    Short MD equilibration to relax the relax the velocities and forces
-    """
     update_neighbor_lists!(arrays, parameters, output, neighborlist)
     system = parameters.system
     println("Performing short time MD equilibration")
@@ -438,7 +586,28 @@ function run_short_MD_equilibration!(arrays, parameters, output, neighborlist)
     end
 end
 
+"""
+    print_log_data(arrays, parameters, output, neighborlist)
 
+Print log data during the simulation.
+
+This function calculates and prints various simulation parameters and energies for logging purposes.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions and velocities.
+- `parameters::Parameters`: An object containing various simulation parameters, such as system temperature and box size.
+- `output::Output`: An object tracking the simulation progress and results.
+- `neighborlist::NeighborList`: A list of neighboring particles for efficient energy calculation.
+
+# Details
+- Calculates the potential energy, kinetic energy, and various order parameters such as q4, q6, and F₂s.
+- Prints the step number, total energy (sum of potential and kinetic), potential energy, kinetic energy,
+  temperature, and order parameters to the console.
+- Flushes the standard output buffer to ensure immediate printing.
+
+# Returns
+- `Nothing`: The function prints log data to the console.
+"""
 function print_log_data(arrays, parameters, output, neighborlist)
     output.potential_energy = calculate_full_energy(arrays, parameters, neighborlist)
     if typeof(parameters.system) !== Brownian
@@ -478,11 +647,35 @@ function print_log_data(arrays, parameters, output, neighborlist)
     flush(stdout)
 end
 
+"""
+    perform_molecular_dynamics!(arrays, parameters, output, neighborlist; restarted=false, equilibrate_velocities=true)
 
+Perform molecular dynamics simulation.
+
+This function executes a molecular dynamics (MD) simulation using the Verlet integration method.
+It iterates over a specified number of steps and performs various actions such as updating neighbor lists,
+calculating energies, and saving data. Additionally, it checks for crystallization during the simulation.
+
+# Arguments
+- `arrays::Arrays`: An object containing arrays storing information about particle positions and velocities.
+- `parameters::Parameters`: An object containing various simulation parameters, such as system temperature and time step.
+- `output::Output`: An object tracking the simulation progress and results.
+- `neighborlist::NeighborList`: A list of neighboring particles for efficient energy calculation.
+- `restarted::Bool=false`: Specifies if the simulation is restarted from a previous state.
+- `equilibrate_velocities::Bool=true`: Specifies whether to equilibrate particle velocities before starting the production MD.
+
+# Details
+- Initializes the MD simulation and sets up necessary variables and counters.
+- Equilibrates particle velocities if required.
+- Executes the MD time steps using the `do_time_step` function based on the specified system dynamics.
+- Calls user-defined callback functions and saves data periodically.
+- Checks for crystallization during the simulation and terminates if detected.
+- Prints information about the simulation progress and results.
+
+# Returns
+- `Nothing`: The function prints simulation information to the console.
+"""
 function perform_molecular_dynamics!(arrays, parameters, output, neighborlist; restarted=false, equilibrate_velocities=true)
-    """
-    Main MD loop. 
-    """
     println("\n\nStarting MD procedure")
     arrays.r_old_array .= arrays.r_array
     if !restarted && equilibrate_velocities && typeof(parameters.system) !== Brownian 
