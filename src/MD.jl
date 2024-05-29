@@ -475,7 +475,7 @@ function print_log_data(arrays, parameters, output, neighborlist)
             "F₂s = $(round(output.F2s, digits=3))"
         )
     end
-
+    flush(stdout)
 end
 
 
