@@ -93,6 +93,60 @@ function compute_forces_berthier_3d(neighborlist, parameters, arrays, particle_i
 end
 
 
+function compute_forces_lj_3d(neighborlist, parameters, arrays, particle_i)
+    r_array = arrays.r_array
+    F_array = arrays.F_array
+    D_array = arrays.D_array
+    r²_cutoff = parameters.force_cutoff2
+    box_size = parameters.box_size
+    neighbor_list = neighborlist.neighbor_list_half
+    interaction_potential = parameters.interaction_potential
+    @assert interaction_potential isa LJ
+    ri = r_array[particle_i]
+    fx = 0.0
+    fy = 0.0
+    fz = 0.0
+    xi = ri[1]
+    yi = ri[2]
+    zi = ri[3]
+    ϵ = interaction_potential.ϵ
+    σ = interaction_potential.σ
+    σ2 = σ^2
+    r_array_r = reinterpret(reshape, Float64, r_array)
+    F_array_r = reinterpret(reshape, Float64, F_array)
+    Di = D_array[particle_i]
+    N_neighbors = neighborlist.neighbor_numbers_half[particle_i]
+    @turbo for neighbor_index = 1:N_neighbors
+        particle_j = neighbor_list[neighbor_index, particle_i]
+        xj = r_array_r[1,particle_j]
+        yj = r_array_r[2,particle_j]
+        zj = r_array_r[3,particle_j]
+        dx = xi - xj
+        dy = yi - yj
+        dz = zi - zj
+        dx -= round(dx / box_size) * box_size
+        dy -= round(dy / box_size) * box_size
+        dz -= round(dz / box_size) * box_size
+        rij2 = dx^2 + dy^2 + dz^2
+        Dj = D_array[particle_j]
+        mean_d_squared = σ2
+        xi2 = mean_d_squared/rij2
+        xi6 = xi2*xi2*xi2 #
+        xi12 = xi6*xi6  
+        F = ifelse(r²_cutoff < rij2, 0.0, ϵ * (48*xi12 - 24xi6) / rij2)
+        fx += F * dx
+        fy += F * dy
+        fz += F * dz
+        F_array_r[1, particle_j] -= F * dx
+        F_array_r[2, particle_j] -= F * dy
+        F_array_r[3, particle_j] -= F * dz
+    end
+    F_array_r[1, particle_i] += fx
+    F_array_r[2, particle_i] += fy
+    F_array_r[3, particle_i] += fz
+end
+
+
 function compute_forces_berthier_2d(neighborlist, parameters, arrays, particle_i)
     r_array = arrays.r_array
     F_array = arrays.F_array
@@ -168,6 +222,8 @@ function calculate_new_forces!(arrays, parameters, neighborlist)
         end
         if dims == 3 && typeof(interaction_potential) == Berthier
             compute_forces_berthier_3d(neighborlist, parameters, arrays, particle_i)
+        elseif dims == 3 && typeof(interaction_potential) == LJ
+            compute_forces_lj_3d(neighborlist, parameters, arrays, particle_i)
         elseif dims == 2 && typeof(interaction_potential) == Berthier
             compute_forces_berthier_2d(neighborlist, parameters, arrays, particle_i)
         else
@@ -359,10 +415,10 @@ function do_time_step(arrays, parameters, output, neighborlist, system::Union{Ne
         # Rescale velocities to set temperature
         Ekin = 0.0
         for i = 1:parameters.N
-            Ekin += sum(v_array[1, i].^2)
+            Ekin += sum(v_array[i].^2)
         end
         Ekin *= system.m / 2.0
-        kBT_current = 2Ekin / (3 * parameters.N)
+        kBT_current = 2Ekin / (parameters.system.dims * parameters.N)
         factor = sqrt(system.kBT / kBT_current)
         v_array .*= factor
     end
@@ -403,7 +459,7 @@ function print_log_data(arrays, parameters, output, neighborlist)
             "E_pot = $(round(output.potential_energy,digits=12)),  ",
             "E_pot_test = $(round(energy_no_neigh, digits=12)),  ",
             "E_kin = $(round(output.kinetic_energy, digits=2)), ",
-            "kT = $(round(output.kinetic_energy *2/3/parameters.N, digits=3)), ",
+            "kT = $(round(output.kinetic_energy *2/parameters.system.dims/parameters.N, digits=3)), ",
             "q4 = $(round(output.q4,digits=3)), ",
             "q6 = $(round(output.q6, digits=3)), ",
             "F₂s = $(round(output.F2s, digits=3))"
@@ -415,7 +471,7 @@ function print_log_data(arrays, parameters, output, neighborlist)
             "E_pot = $(round(output.potential_energy,digits=12)),  ",
             "E_pot_test = $(round(energy_no_neigh, digits=12)),  ",
             "E_kin = $(round(output.kinetic_energy, digits=2)), ",
-            "kT = $(round(output.kinetic_energy *2/3/parameters.N, digits=3)), ",
+            "kT = $(round(output.kinetic_energy *2/parameters.system.dims/parameters.N, digits=3)), ",
             "F₂s = $(round(output.F2s, digits=3))"
         )
     end
@@ -464,5 +520,4 @@ function perform_molecular_dynamics!(arrays, parameters, output, neighborlist; r
     println("MD procedure complete")
     total_Neighbor_builds = output.N_neighbor_list_rebuilds
     println("Number of neighbor lists built = $total_Neighbor_builds")
-
 end

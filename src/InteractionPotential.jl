@@ -24,6 +24,18 @@ end
     return 4U.ϵ*(xi12 - xi6) - U.Uc
 end
 
+@inline function force(r_squared, mean_d_squared, U::LJ)
+    """
+    """
+    inv_r_squared = 1.0/r_squared
+    xi2 = mean_d_squared*inv_r_squared
+    xi6 = xi2*xi2*xi2
+    xi12 = xi6*xi6
+    Fdivr = U.ϵ*(48xi12 - 24*xi6)*inv_r_squared
+    return Fdivr
+end
+
+
 @inline function potential(r_squared, mean_d_squared, U::PowerLaw)
     xi2 = mean_d_squared/r_squared
     xin = xi2^(U.n/2)
@@ -84,6 +96,7 @@ end
     return -2.0 * inv_mean_d2 * (U.c2 + 2.0*U.c4*invxi2 - 6.0*xi14)
 end
     
+
 
 # @inline function WCA_potential(r_squared, mean_d_squared)
 #     """
