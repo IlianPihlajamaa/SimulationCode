@@ -20,7 +20,6 @@ Below is a sample script to illustrate how to use SimulationCode.jl for setting 
 ```julia
 Copy code
 import Pkg; Pkg.activate(".")
-using Revise
 using Random
 using SimulationCode
 
