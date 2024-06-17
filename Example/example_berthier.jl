@@ -6,11 +6,13 @@ using SimulationCode
 dims = 2
 kBT = 0.1
 ρ = 1.0
-interaction_potential = SimulationCode.Berthier(-1.924145348608,
-                                    2.11106232532992, 
-                                    -0.5910974510923776, 
-                                    0.2, 
-                                    2.219)
+force_cutoff = 1.25             # Force cutoff
+σ_ratio = 4.0                   # Ratio of the diameters of the smallest and largest particles
+interaction_potential = SimulationCode.Berthier(
+                                    n = 12,
+                                    rc = force_cutoff,
+                                    σ_ratio = σ_ratio,
+                                    ζ = 0.2)
 
 # System
 Δt = 0.01                           # Time step
@@ -21,7 +23,6 @@ system = SimulationCode.Newtonian(kBT, Δt, m, false, dims)
 # system = Langevin(γ, kBT, Δt, m, dims)
 
 N = 1200                        # Number of particles
-force_cutoff = 1.25             # Force cutoff
 q_cutoff = 0.0                  # Size of the shell of the calculation of the Steinhardt order parameters
 N_stepsMC = 10^5                # Number of MC steps to take
 N_stepsMD = 3*10^5                # Number of time steps to take
