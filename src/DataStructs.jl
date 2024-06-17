@@ -48,6 +48,15 @@ struct Berthier <: InteractionPotential
     c4::Float64
     ζ::Float64
     σ_ratio::Float64
+    n::Int64
+    rc::Float64
+    function Berthier(; n=12, rc=1.25, σ_ratio=2.219, ζ=0.2) 
+        @assert n == 12
+        c0 = -(1/8)*(8 + 6n + n^2)*rc^-n
+        c2 = 1/4*n*(4 + n)*rc^(-2 - n)
+        c4 = -(1/8)*n*(2 + n)*rc^(-4 - n)
+        new(c0, c2, c4, ζ, σ_ratio, n, rc)
+    end
 end
 
 abstract type System end
