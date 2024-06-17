@@ -181,8 +181,6 @@ calculating energies, and saving data. Additionally, it checks for crystallizati
 - `Nothing`: The function prints simulation information to the console.
 """
 function perform_swap_monte_carlo!(arrays, parameters, output, neighborlist)
-
-    println("\n\nStarting MC procedure")
     dump_info = parameters.dump_info
     update_neighbor_lists!(arrays, parameters, output, neighborlist)
     output.kinetic_energy = calculate_full_energy(arrays, parameters, neighborlist)
