@@ -609,7 +609,7 @@ This function calculates and prints various simulation parameters and energies f
 - `Nothing`: The function prints log data to the console.
 """
 function print_log_data(arrays, parameters, output, neighborlist, start_time)
-    remaining_time = estimated_remaining_time(output.steps_done, parameters.N_steps, start_time)
+    remaining_time = estimated_remaining_time(output.steps_done, start_time, parameters.N_steps)
     output.potential_energy = calculate_full_energy(arrays, parameters, neighborlist)
     if typeof(parameters.system) !== Brownian
         find_kinetic_energy(arrays, parameters, output)
@@ -625,7 +625,7 @@ function print_log_data(arrays, parameters, output, neighborlist, start_time)
     if parameters.system.dims == 3
         println(
             "$(output.steps_done)/$(parameters.N_steps), ",
-            "ETA = $(round(remaining_time, digits=2)), ", 
+            "ETA = $(round(remaining_time, digits=1)), ", 
             "E = $(round(output.potential_energy + output.kinetic_energy,digits=2)),  ",
             "E_pot = $(round(output.potential_energy,digits=12)),  ",
             "E_pot_test = $(round(energy_no_neigh, digits=12)),  ",
@@ -638,6 +638,7 @@ function print_log_data(arrays, parameters, output, neighborlist, start_time)
     else 
         println(
             "$(output.steps_done)/$(parameters.N_steps), ",
+            "ETA = $(round(remaining_time, digits=1)), ", 
             "E = $(round(output.potential_energy + output.kinetic_energy,digits=2)),  ",
             "E_pot = $(round(output.potential_energy,digits=12)),  ",
             "E_pot_test = $(round(energy_no_neigh, digits=12)),  ",
