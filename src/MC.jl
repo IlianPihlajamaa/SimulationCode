@@ -198,7 +198,7 @@ function perform_swap_monte_carlo!(arrays, parameters, output, neighborlist)
     save_data(arrays, parameters, output, neighborlist, false)
     parameters.callback(arrays, parameters, output, neighborlist)
     output.potential_energy = calculate_full_energy_no_neigh(arrays, parameters)
-
+    start_t = time()
     @time while output.steps_done <= parameters.N_steps
         do_MC_step!(arrays, parameters, output, neighborlist, parameters.swap_probability)
         parameters.callback(arrays, parameters, output, neighborlist)
@@ -211,8 +211,10 @@ function perform_swap_monte_carlo!(arrays, parameters, output, neighborlist)
             end
             calculate_F2_self!(arrays, parameters, output)
             energy_no_neigh = calculate_full_energy_no_neigh(arrays, parameters)
+            t_still = estimated_remaining_time(output.steps_done, start_t, parameters.N_steps)
             println(
                         "$(output.steps_done)/$(parameters.N_steps), ",
+                        "ETA = $(round(t_still, digits=1)), ", 
                         "E_pot = $(round(output.potential_energy,digits=12)),  ",
                         "E_pot_test = $(round(energy_no_neigh, digits=12)),  ",
                         "q4 = $(round(output.q4,digits=3)), ", 

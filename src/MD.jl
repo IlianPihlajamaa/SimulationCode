@@ -608,7 +608,8 @@ This function calculates and prints various simulation parameters and energies f
 # Returns
 - `Nothing`: The function prints log data to the console.
 """
-function print_log_data(arrays, parameters, output, neighborlist)
+function print_log_data(arrays, parameters, output, neighborlist, start_time)
+    remaining_time = estimated_remaining_time(output.steps_done, parameters.N_steps, start_time)
     output.potential_energy = calculate_full_energy(arrays, parameters, neighborlist)
     if typeof(parameters.system) !== Brownian
         find_kinetic_energy(arrays, parameters, output)
@@ -624,6 +625,7 @@ function print_log_data(arrays, parameters, output, neighborlist)
     if parameters.system.dims == 3
         println(
             "$(output.steps_done)/$(parameters.N_steps), ",
+            "ETA = $(round(remaining_time, digits=2)), ", 
             "E = $(round(output.potential_energy + output.kinetic_energy,digits=2)),  ",
             "E_pot = $(round(output.potential_energy,digits=12)),  ",
             "E_pot_test = $(round(energy_no_neigh, digits=12)),  ",
@@ -697,14 +699,14 @@ function perform_molecular_dynamics!(arrays, parameters, output, neighborlist; r
     prepare_savefile(parameters, arrays)
     save_data(arrays, parameters, output, neighborlist, restarted)
     parameters.callback(arrays, parameters, output, neighborlist)
-
+    start_time = time()
     @time while output.steps_done < parameters.N_steps
         do_time_step(arrays, parameters, output, neighborlist, parameters.system)
         output.steps_done += 1
         parameters.callback(arrays, parameters, output, neighborlist)
         save_data(arrays, parameters, output, neighborlist, restarted)
         if logdata(output.steps_done)
-            print_log_data(arrays, parameters, output, neighborlist)
+            print_log_data(arrays, parameters, output, neighborlist, start_time)
             if output.q6 > 0.2
                 error("Simulation has crystallized, terminating...")
             end

@@ -1024,3 +1024,17 @@ function calculate_F2_self!(arrays, parameters, output)
     F2s /= N
     output.F2s = F2s
 end
+
+"""
+    estimated_remaining_time(steps_done, start_t, N_steps)
+
+Estimates the remaining time for a simulation.
+"""
+function estimated_remaining_time(steps_done, start_t, N_steps)
+    t = time()
+    elapsed_time = t - start_t
+    steps_remaining = N_steps - steps_done
+    time_per_step = elapsed_time / steps_done
+    remaining_time = steps_remaining * time_per_step
+    return remaining_time
+end
