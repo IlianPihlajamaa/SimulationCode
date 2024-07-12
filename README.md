@@ -8,7 +8,6 @@ Support for Multiple Simulation Methods: Includes Newtonian dynamics, Brownian d
 To install SimulationCode.jl, run:
 
 ```julia
-Copy code
 import Pkg
 Pkg.activate(".")
 Pkg.add("https://github.com/IlianPihlajamaa/SimulationCode")
@@ -18,22 +17,20 @@ Pkg.add("https://github.com/IlianPihlajamaa/SimulationCode")
 Below is a sample script to illustrate how to use SimulationCode.jl for setting up and running a simulation:
 
 ```julia
-Copy code
 import Pkg; Pkg.activate(".")
 using Random
 using SimulationCode
 
 # Simulation parameters
-dims = 2
+dims = 3
 kBT = 0.1
 ρ = 1.0
 
-interaction_potential = SimulationCode.Berthier(
-    -1.924145348608,
-    2.11106232532992, 
-    -0.5910974510923776, 
-    0.2, 
-    2.219
+ϵ = 1.0
+σ = 1.0
+force_cutoff = 2.5
+interaction_potential = SimulationCode.LJ(
+    ϵ, σ, force_cutoff
 ) 
 
 # System setup
@@ -41,25 +38,24 @@ interaction_potential = SimulationCode.Berthier(
 m = 1.0    # Mass
 system = SimulationCode.Newtonian(kBT, Δt, m, false, dims) # also supports Langevin and Brownian dynamics
 
-N = 1200  # Number of particles
-force_cutoff = 1.25
+N = 1000  # Number of particles
+force_cutoff = 2.5
 q_cutoff = 0.0
-N_stepsMC = 10^5  # Number of Monte Carlo steps
-N_stepsMD = 3*10^5  # Number of molecular dynamics steps
+N_stepsMC = 10^4  # Number of Monte Carlo steps
+N_stepsMD = 10^5  # Number of molecular dynamics steps
 swap_probability = 0.1
 max_MC_displacement = 0.1
 N_MD_equilibration_steps = 10^3
 
 random_seed = rand(1:10^9)
 box_size = (N / ρ)^(1 / dims)
-simulation_folder = "Data"
-simulation_name = joinpath(@__DIR__, simulation_folder, "T_$(kBT)_seed_$(random_seed)")
+simulation_name = "test_$(random_seed)"
 simulation_suffix = "_Equilibration.h5"
 simulation_name_full = simulation_name * simulation_suffix
 
 # Neighbor list parameters
 skin_distanceMC = 0.6
-skin_distanceMD = 0.4
+skin_distanceMD = 0.3
 
 dump_info = SimulationCode.DumpInfo(
     true,  # Save data

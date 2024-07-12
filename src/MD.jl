@@ -244,7 +244,6 @@ end
 Calculate forces between particles.
 
 This function computes forces between particles based on their positions and interaction potentials.
-It considers different interaction potentials and dimensions of the system to compute forces efficiently.
 
 # Arguments
 - `arrays::Arrays`: An object containing arrays storing information about particle positions and diameters.
@@ -260,7 +259,6 @@ It considers different interaction potentials and dimensions of the system to co
 # Returns
 - `Nothing`: The function modifies the force arrays in place.
 """
-
 function calculate_new_forces!(arrays, parameters, neighborlist)
     dims = parameters.system.dims
 
@@ -283,6 +281,7 @@ function calculate_new_forces!(arrays, parameters, neighborlist)
         if N_neighbors == 0
             continue
         end
+        # for efficiency, these specific cases are handled separately (for inlining, @turbo, etc)
         if dims == 3 && typeof(interaction_potential) == Berthier
             compute_forces_berthier_3d(neighborlist, parameters, arrays, particle_i)
         elseif dims == 3 && typeof(interaction_potential) == LJ
