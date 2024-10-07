@@ -7,6 +7,7 @@ function generate_diameters!(arrays, parameters, U::Berthier)
     σmin = (1 + σ_ratio)/(2*σ_ratio)
     D_array .= shuffle([sqrt(1/(σmin^-2 - 2P/A)) for P in LinRange(1/(2N), 1-1/(2N), N)])
     println("The volume fraction is φ = $(find_volume_fraction(D_array, parameters.box_size, parameters.system.dims))")
+
 end
 
 function generate_diameters!(arrays, parameters, U::Union{LJ, PowerLaw, GaussianCore})
