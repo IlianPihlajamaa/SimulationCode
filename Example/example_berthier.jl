@@ -31,7 +31,6 @@ max_MC_displacement = 0.1       # Maximal displacement in a displacement step in
 N_MD_equilibration_steps = 10^3   # Number of steps for short-time MD equilibration
 
 
-
 random_seed = rand(1:10^9)      # Seed for the random number generator
 box_size = (N / ρ)^(1 / dims)          # Cubic box dimension
 simulation_folder = "Data"      # Name of folder in which to store datafile
@@ -43,15 +42,26 @@ simulation_name_full = simulation_name * simulation_suffix     # Name of the dat
 skin_distanceMC = 0.6           # Size of the verlet cells for swap MC
 skin_distanceMD = 0.4          # Size of the verlet cells for MD
 
+# For dump info
+save_r = true
+save_v = true 
+save_F = true
+save_D = false
+save_Epot = false
+
+log_factor = 1.3
+N_starts = 100
+N_max = N_stepsMD
+
 dump_info = SimulationCode.DumpInfo(
     true, #save
     simulation_name_full,
-    0:1000:N_stepsMD,#SimulationCode.create_when_to_save_array(N_stepsMD, 200), #when save
-    true, #r
-    true, #v
-    true, #F
-    false, #D
-    false, #Epot      
+    SimulationCode.create_when_to_save_array(log_factor, N_starts, N_max), #when save
+    save_r, # r
+    save_v, # v
+    save_F, # F
+    save_D, # D
+    save_Epot, # Epot      
 )
 
 cb(x...) = nothing
