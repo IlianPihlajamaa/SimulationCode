@@ -19,6 +19,7 @@ function generate_diameters!(arrays, parameters, U::HardSphere)
     # all diameters are equal
     D_array = arrays.D_array
     D_array .= 1.0
+    println("The volume fraction is φ = $(find_volume_fraction(D_array, parameters.box_size, parameters.system.dims))")
 end
 
 
@@ -28,7 +29,7 @@ function generate_diameters!(arrays, parameters, U::Weysser)
     N = length(D_array)
     δ = U.δ
     D_array .= shuffle([2*δ*P+1-δ for P in LinRange(1/(2N), 1-1/(2N), N)])
-    println("The volume fraction is φ = $(find_volume_fraction(D_array, parameters.box_size))")
+    println("The volume fraction is φ = $(find_volume_fraction(D_array, parameters.box_size, parameters.system.dims))")
 end
 
 function sample_A_sigma3(σmin, A)
