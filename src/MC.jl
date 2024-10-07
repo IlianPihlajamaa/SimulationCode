@@ -190,6 +190,7 @@ function perform_swap_monte_carlo!(arrays, parameters, output, neighborlist)
     output.N_translations_total = 0
     output.N_translations_accepted = 0
     output.N_neighbor_list_rebuilds = 0
+    
     # when_to_save_array = create_when_to_save_array(parameters.N_steps, 50)
     prepare_savefile(parameters, arrays)
     arrays.r_old_array .= arrays.r_array
