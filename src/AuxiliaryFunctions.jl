@@ -583,45 +583,6 @@ function find_energy(particle_i, ri, Di, arrays, parameters, neighborlist)
     return energy
 end
 
-"""
-    find_pair_energy(ri, rj, Dj, box_size, parameters)
-
-Calculates the potential energy between a pair of particles.
-
-This function computes the potential energy between a pair of particles 
-specified by their positions `ri` and `rj`, properties `Dj`, and the simulation 
-box size `box_size`.
-
-# Parameters
-- `ri`: Position vector of the first particle.
-- `rj`: Position vector of the second particle.
-- `Dj`: Property vector of the second particle (e.g., diameter).
-- `box_size`: Size of the simulation box.
-- `parameters`: An object containing parameters including `force_cutoff2` and 
-  `interaction_potential`.
-
-# Returns
-- `Float64`: The potential energy between the pair of particles.
-
-# Notes
-- The potential energy is calculated based on the squared distance between 
-  the particles `ri` and `rj` considering periodic boundary conditions.
-- The mean diameter `mean_d` between the particles is computed based on their 
-  properties and the interaction potential.
-- The potential energy is evaluated using the interaction potential and 
-  corrected to avoid double-counting if the squared distance exceeds the 
-  cutoff distance.
-"""
-function find_pair_energy(ri,rj, Dj, box_size, parameters)
-    r²_cutoff = parameters.force_cutoff2
-    interaction_potential = parameters.interaction_potential
-    rij2 = calculate_squared_distance(ri,rj, box_size)
-    mean_d = find_mean_D(Di, Dj, interaction_potential)
-    mean_d_squared = mean_d * mean_d
-    energy += ifelse(r²_cutoff * mean_d_squared < rij2, 0.0, potential(rij2, mean_d_squared, interaction_potential))
-    return energy
-end
-
 
 """
     populate_random_displacement_array!(a, N, max_displacement)
