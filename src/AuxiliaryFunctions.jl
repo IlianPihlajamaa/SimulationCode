@@ -635,14 +635,14 @@ of a power of 10, and returns `true` if it meets either condition, and `false` o
 - The function returns `false` for negative integers.
 """
 function logdata(t::Int)
-    if t == 0
-        return true
-    end
-    log10t = log10(t)
-    if log10t >= 2 && t % 10^floor(Int64, log10t) == 0
-        return true
-    end
-    return false
+  if t == 0
+      return true
+  end
+  log10t = log10(t)
+  if log10t >= 3 && t % 10^floor(Int64, log10t) == 0
+      return true
+  end
+  return false
 end
 
 """

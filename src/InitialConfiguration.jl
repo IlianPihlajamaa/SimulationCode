@@ -64,7 +64,7 @@ function find_random_initial_configuration!(arrays, parameters, output, neighbor
     println("Initialized particles on a simple cubic lattice.")
     println("Running quick MC equilibration at high temperature.")
     if !isfinite(output.potential_energy) && parameters.interaction_potential == HardSphere()
-        
+        flush(stdout)
         println("Growing the hard spheres when overlaps")
         arrays.D_array .*= 0.01
         for i=0:max_growth_steps
@@ -92,6 +92,7 @@ function find_random_initial_configuration!(arrays, parameters, output, neighbor
     end
 
     @time for i=0:steps
+
         if i % (steps ÷ 10) == 0
             output.potential_energy = calculate_full_energy(arrays, parameters, neighborlist)
             if parameters.q_cutoff > 0.0
@@ -104,7 +105,7 @@ function find_random_initial_configuration!(arrays, parameters, output, neighbor
                         "q4 = $(round(output.q4,digits=6)), ", 
                         "q6 = $(round(output.q6, digits=6))"
                     )
-                         
+            flush(stdout)                        
         end
         do_MC_step!(arrays, parameters, output, neighborlist, 0.0)
     end

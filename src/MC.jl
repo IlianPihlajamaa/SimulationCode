@@ -180,21 +180,24 @@ calculating energies, and saving data. Additionally, it checks for crystallizati
 # Returns
 - `Nothing`: The function prints simulation information to the console.
 """
-function perform_swap_monte_carlo!(arrays, parameters, output, neighborlist)
+function perform_swap_monte_carlo!(arrays, parameters, output, neighborlist; stepsdone=0)
     dump_info = parameters.dump_info
     update_neighbor_lists!(arrays, parameters, output, neighborlist)
     output.kinetic_energy = calculate_full_energy(arrays, parameters, neighborlist)
-    output.steps_done = 0
+    output.steps_done = stepsdone
     output.N_swaps_total = 0
     output.N_swaps_accepted = 0
     output.N_translations_total = 0
     output.N_translations_accepted = 0
     output.N_neighbor_list_rebuilds = 0
     
-    # when_to_save_array = create_when_to_save_array(parameters.N_steps, 50)
-    prepare_savefile(parameters, arrays)
     arrays.r_old_array .= arrays.r_array
-    save_data(arrays, parameters, output, neighborlist, false)
+
+    if stepsdone == 0 # otherwise we are restarting file already exists
+        prepare_savefile(parameters, arrays)
+        save_data(arrays, parameters, output, neighborlist, false)
+    end
+    
     parameters.callback(arrays, parameters, output, neighborlist)
     output.potential_energy = calculate_full_energy_no_neigh(arrays, parameters)
     start_t = time()

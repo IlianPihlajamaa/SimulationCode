@@ -677,7 +677,7 @@ calculating energies, and saving data. Additionally, it checks for crystallizati
 # Returns
 - `Nothing`: The function prints simulation information to the console.
 """
-function perform_molecular_dynamics!(arrays, parameters, output, neighborlist; restarted=false, equilibrate_velocities=true)
+function perform_molecular_dynamics!(arrays, parameters, output, neighborlist; restarted=false, equilibrate_velocities=true, new_file=true)
     println("\n\nStarting MD procedure")
     arrays.r_old_array .= arrays.r_array
     if !restarted && equilibrate_velocities && typeof(parameters.system) !== Brownian 
@@ -695,9 +695,10 @@ function perform_molecular_dynamics!(arrays, parameters, output, neighborlist; r
     end
     output.potential_energy = calculate_full_energy(arrays, parameters, neighborlist)
     output.N_neighbor_list_rebuilds = 0
-
-    prepare_savefile(parameters, arrays)
-    save_data(arrays, parameters, output, neighborlist, restarted)
+    if new_file
+        prepare_savefile(parameters, arrays)
+        save_data(arrays, parameters, output, neighborlist, restarted)
+    end
     parameters.callback(arrays, parameters, output, neighborlist)
     start_time = time()
     @time while output.steps_done < parameters.N_steps
