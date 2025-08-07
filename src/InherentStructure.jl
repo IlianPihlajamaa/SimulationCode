@@ -65,7 +65,7 @@ function find_inherent_structure(r_array_to_be_minimized, parameters, arrays, ne
                 rij2 = SimulationCode.calculate_squared_distance(ri, rj, box_size)
                 maxchange = max(maxchange, sqrt(rij2))
             end
-            @show iteration, maxchange, stepsize, maxforce, sum(arrays.potential_energy_array)
+            @show iteration, maxchange, stepsize, maxforce, sum(arrays.potential_energy_array), sum(F_array)
 
         end
     end
