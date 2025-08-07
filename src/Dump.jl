@@ -1,40 +1,35 @@
 """
-    create_when_to_save_array(maxsteps, doublefactor)
+    create_when_to_save_array(log_factor, N_starts, N_max)
 
-Creates an array of steps at which data should be saved during a simulation.
-
-This function generates an array of integers representing the steps at which 
-data should be saved. The intervals between these steps increase exponentially.
+Generates a sorted array of unique time indices at which data should be saved during a simulation.
 
 # Arguments
-- `maxsteps`: Maximum number of simulation steps.
-- `doublefactor`: Factor by which the interval (`dt`) between saves increases.
+- `log_factor::Float`: The multiplicative factor by which time intervals increase exponentially.
+- `N_starts::Int`: The number of starting points (offsets) from which to begin generating save times.
+- `N_max::Int`: The maximum time index (inclusive) up to which data will be saved.
 
 # Returns
-- `save_array`: Array of integers indicating the steps at which to save data.
+- `when_to_save::Vector{Int}`: A sorted vector of unique integer time indices less than or equal to `N_max`, indicating when to save data.
 
-# Details
-- The function starts with a step interval (`dt`) of 1 and doubles the interval 
-  after `doublefactor` steps.
-- This array helps in saving data more frequently at the beginning and less 
-  frequently as the simulation progresses, which is useful for capturing early 
-  dynamics in detail while reducing the amount of saved data for later steps.
-
+# Description
+This function creates a series of time indices for saving data in a simulation, starting from multiple initial offsets and increasing exponentially based on the `log_factor`. The save times are designed to be more frequent at the beginning and become less frequent over time.
 """
-function create_when_to_save_array(maxsteps, doublefactor)
-    save_array = Int64[]
-    t = 0
-    dt = 1
-    while t <= maxsteps
-        push!(save_array, t)
-        t += dt
-        if t == dt * doublefactor
-            dt *= 10
+
+function create_when_to_save_array(log_factor, N_starts, N_max)
+    start_times = 0:(N_max÷N_starts):N_max
+    when_to_save = Int[collect(start_times)...]
+    for i_start in start_times
+        t = 1
+        while t <= N_max
+            push!(when_to_save, t+i_start)
+            t *= log_factor
+            t = ceil(Int, t)
         end
     end
-    sort!(save_array)
-    return save_array
+    push!(when_to_save, N_max)
+    return sort(unique(when_to_save[when_to_save .<= N_max]))
 end
+
 
 """
     save_data(arrays, parameters::ParameterStruct{A,B}, output, neighborlist, restarted) where {A,B}
